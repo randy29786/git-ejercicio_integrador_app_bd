@@ -1,0 +1,89 @@
+version: '3.7'
+services:
+ wordpress:
+     image: wordpress:latest
+     container_name: wordpress
+     depends_on:
+             - db
+     environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: exampleuser
+      WORDPRESS_DB_PASSWORD: examplepass
+      WORDPRESS_DB_NAME: exampledb
+     volumes:
+      - wordpress:/var/www/html/
+     networks:
+          back_end:
+               ipv4_address: 172.28.2.3
+          front_end:
+               ipv4_address: 172.28.1.3
+ db:
+    image: mysql:latest
+    container_name: db
+    environment:
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - mysql:/var/lib/mysql
+    networks:
+         back_end:
+                ipv4_address: 172.28.2.2
+
+ proxy-inv:
+    image: nginx:alpine
+    container_name: proxy-inv
+    ports:
+           - "80:80"
+           - "7878:7878"
+    volumes:
+           - ./http-echo.conf:/etc/nginx/conf.d/http-echo.conf
+           - ./wordpress.conf:/etc/nginx/conf.d/wordpress.conf
+    networks:
+         servicio:
+                ipv4_address: 192.168.99.10
+         front_end:
+                ipv4_address: 172.28.1.4
+
+ http-echo:
+    image: nginx:alpine
+    container_name: http-echo
+    expose:
+           - "7878"
+    volumes:
+           - ./bienvenido.conf:/etc/nginx/conf.d/bienvenido.conf
+           - ./index-bienvenido.html:/usr/share/nginx/html/index-bienvenido.html
+    networks:
+         front_end:
+                ipv4_address: 172.28.1.2
+networks:
+ back_end:
+     driver: bridge
+     name: back_end
+     ipam:
+        config:
+           - subnet: 172.28.2.0/24
+             gateway: 172.28.2.1
+ front_end:
+     driver: bridge
+     name: front_end
+     ipam:
+        config:
+           - subnet: 172.28.1.0/24
+             gateway: 172.28.1.1
+ servicio:
+     driver: bridge
+     name: servicio
+     ipam:
+        config:
+           - subnet: 192.168.99.0/24
+             gateway: 192.168.99.1         
+
+volumes:
+  mysql:
+          external: true
+
+  wordpress:
+          external: true
+   
